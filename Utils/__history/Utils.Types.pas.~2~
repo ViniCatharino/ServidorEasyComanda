@@ -1,0 +1,11 @@
+unit Utils.Types;
+
+interface
+
+type
+  TStatusMesa = (tsmFechada, tsmLivre, tsmReservada);
+  TStatusPedido = (tspAberto, tspEntregue);
+
+implementation
+
+end.

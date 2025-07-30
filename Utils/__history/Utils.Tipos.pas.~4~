@@ -1,0 +1,16 @@
+unit Utils.Tipos;
+
+interface
+
+type
+  TStatusMesa   = (tsmAberta, tsmFechada, tsmLivre, tsmOcupada, tsmReservada);
+  TStatusPedido = (tspAberto, tspEntregue);
+
+var
+  StatusMesaArray   : array[0..4] of string = ('A', 'F', 'L', 'O', 'R');
+  StatusPedidoArray : array[0..1] of string = ('A', 'E');
+
+implementation
+
+
+end.
