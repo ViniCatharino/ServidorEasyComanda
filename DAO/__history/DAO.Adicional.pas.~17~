@@ -1,0 +1,139 @@
+unit DAO.Adicional;
+
+interface
+
+uses Firedac.Comp.Client,
+     FireDAC.DApt,
+     DataSet.Serialize,
+     DAO.Connection,
+     System.SysUtils,
+     System.JSON;
+
+type
+  TDAOAdicional = class(TDAOConnection)
+  private
+    FCodigoResposta: integer;
+  public
+    function ListarAdicionais: TJSONArray;
+    function ListarAdicionalPorId(AIdAdicional: integer) : TJSONObject;
+    function InserirAdicional(ANome, ADescricao: string; AValor: currency) : TJSONObject;
+    function EditarAdicional(AIdAdicional: integer;ANome, ADescricao: string; AValor: currency): TJSONObject;
+    function DeletarAdicional(AIdAdicional: integer)     : TJSONObject;
+    function CodigoResposta: integer;
+  end;
+
+implementation
+
+{ TDAOAdicional }
+
+function TDAOAdicional.CodigoResposta: integer;
+begin
+  Result := FCodigoResposta;
+end;
+
+function TDAOAdicional.DeletarAdicional(AIdAdicional: integer): TJSONObject;
+
+begin
+//
+end;
+
+function TDAOAdicional.EditarAdicional(AIdAdicional: integer;ANome, ADescricao: string; AValor: currency): TJSONObject;
+var
+  LQry: TFDQuery;
+begin
+  LQry := TFDQuery.Create(nil);
+  try
+    LQry.Connection := Self.Connection;
+
+    LQry.SQL.Add('update adicional set nome=:nome, descricao=:descricao, valor=:valor');
+    LQry.SQL.Add('where id_adicional=:id_adicional');
+    LQry.ParamByName('nome').AsString      := ANome;
+    LQry.ParamByName('descricao').AsString := ADescricao;
+    LQry.ParamByName('valor').AsCurrency   := AValor;
+    LQry.ParamByName('id_adicional').AsInteger         := AIdAdicional;
+    LQry.Active := True;
+
+    Result := LQry.ToJSONObject;
+    FCodigoResposta := 200;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+function TDAOAdicional.InserirAdicional(ANome, ADescricao: string; AValor: currency): TJSONObject;
+var
+  LQry: TFDQuery;
+  LIdAdicional: integer;
+begin
+  LQry := TFDQuery.Create(nil);
+  try
+    LQry.Connection := Self.Connection;
+
+    LQry.SQL.Add('insert into adicional (nome, descricao, valor)');
+    LQry.SQL.Add(' values (:nome, :descricao, :valor)');
+    LQry.SQL.Add('returning id_pedido');
+    LQry.ParamByName('nome').AsString      := ANome;
+    LQry.ParamByName('descricao').AsString := ADescricao;
+    LQry.ParamByName('valor').AsCurrency   := AValor;
+    LQry.Active := True;
+    Result := LQry.ToJSONObject;
+    FCodigoResposta := 201;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+function TDAOAdicional.ListarAdicionais: TJSONArray;
+var
+  LQry: TFDQuery;
+begin
+  LQry := TFDQuery.Create(nil);
+  try
+    LQry.Connection := Self.Connection;
+
+    LQry.SQL.Add('select * from adicional');
+    LQry.SQL.Add('order by nome');
+    LQry.Active := true;
+
+    Result := LQry.ToJSONArray;
+    FCodigoResposta := 200;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+function TDAOAdicional.ListarAdicionalPorId(AIdAdicional: integer): TJSONObject;
+var
+  LQry: TFDQuery;
+  LJSONResultado: TJSONObject;
+begin
+  LQry := TFDQuery.Create(nil);
+  try
+    LQry.Connection := Self.Connection;
+
+    LQry.SQL.Add('select * from adicional where id_adicional=:id_adicional');
+    LQry.SQL.Add('order by nome');
+    LQry.ParamByName('id_adicional').AsInteger := AIdAdicional;
+    LQry.Active := true;
+
+    LJSONResultado := TJSONObject.Create;
+    if LQry.IsEmpty then
+    begin
+      FCodigoResposta := 404;
+      LJSONResultado
+        .AddPair('message','Adicional não encontrado');
+    end
+    else
+    begin
+      FCodigoResposta := 200;
+      LJSONResultado  := LQry.ToJSONObject;
+    end;
+
+    Result := LQry.ToJSONObject;
+    FCodigoResposta := 200;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+end.

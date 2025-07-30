@@ -1,0 +1,35 @@
+unit Controllers.Adicional;
+
+interface
+
+uses Horse,
+     Horse.JWT,
+     System.JSON,
+     System.SysUtils,
+     DAO.Pedido,
+     Controllers.Auth;
+
+procedure RegistrarRotas;
+procedure ListarAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure InserirAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure ExcluirAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure EditarAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+
+implementation
+
+procedure RegistrarRotas;
+begin
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .get('/adicionais', ListarPedidos);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .post('/adicionais', InserirPedido);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .delete('/adicionais/:id_adicional', ExcluirItem);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .put('/adicionais/:id_pedido/itens/:id_item/status', EditarStatusItem);
+end;
+
+end.

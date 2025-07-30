@@ -1,0 +1,152 @@
+unit Controllers.Pedido;
+
+interface
+
+uses Horse,
+     Horse.JWT,
+     System.JSON,
+     System.SysUtils,
+     DAO.Pedido,
+     Controllers.Auth;
+
+procedure RegistrarRotas;
+procedure ListarPedidos(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure InserirPedido(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure ExcluirItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure EditarStatusItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+
+implementation
+
+procedure RegistrarRotas;
+begin
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .get('/pedidos', ListarPedidos);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .post('/pedidos', InserirPedido);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .delete('/pedidos/:id_pedido/itens/:id_item', ExcluirItem);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .put('/pedidos/:id_pedido/itens/:id_item/status', EditarStatusItem);
+end;
+
+procedure ListarPedidos(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  DAOPedido: TDAOPedido;
+  status_ped, status_item_not: string;
+  id_local: integer;
+begin
+  DAOPedido := nil;
+
+  try
+    try
+      DAOPedido := TDAOPedido.Create;
+
+      status_ped      := Req.Query['status'];
+      status_item_not := Req.Query['status_item_not'];
+      id_local        := StrToIntDef(Req.Query['id_local'], 0);
+
+      Res.Send<TJSONArray>(DAOPedido.ListarPedidos(status_ped, status_item_not, id_local));
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+
+  finally
+    DAOPedido.Free;
+  end;
+end;
+
+procedure InserirPedido(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  DAOPedido              : TDAOPedido;
+  body                   : TJSONObject;
+  id_usuario, id_comanda : integer;
+  itens                  : TJSONArray;
+  itensAdicionais        : TJSONArray;
+begin
+  DAOPedido := nil;
+
+  try
+    try
+      DAOPedido := TDAOPedido.Create;
+
+      body       := Req.Body<TJSONObject>;
+      id_comanda := body.GetValue<integer>('id_comanda', 0);
+      id_usuario := Get_Usuario_Request(Req);
+      itens      := body.GetValue<TJSONArray>('itens');
+
+      Res.Send<TJSONObject>(DAOPedido.InserirPedido(id_comanda, id_usuario, itens)).Status(201);
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+
+  finally
+    DAOPedido.Free;
+  end;
+end;
+
+procedure ExcluirItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  DAOPedido: TDAOPedido;
+  id_pedido, id_item, id_usuario: integer;
+begin
+  DAOPedido := nil;
+
+  try
+    try
+      DAOPedido := TDAOPedido.Create;
+
+      id_pedido := Req.Params['id_pedido'].ToInteger;
+      id_item := Req.Params['id_item'].ToInteger;
+      id_usuario := Get_Usuario_Request(Req);
+
+      DAOPedido.ExcluirItem(id_pedido, id_item, id_usuario);
+
+      Res.Send('Item removido com sucesso');
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+
+  finally
+    DAOPedido.Free;
+  end;
+end;
+
+procedure EditarStatusItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  DAOPedido: TDAOPedido;
+  body: TJSONObject;
+  id_pedido, id_item: integer;
+  status: string;
+begin
+  DAOPedido := nil;
+
+  try
+    try
+      DAOPedido := TDAOPedido.Create;
+
+      id_pedido := Req.Params['id_pedido'].ToInteger;
+      id_item   := Req.Params['id_item'].ToInteger;
+
+      body   := Req.Body<TJSONObject>;
+      status := body.GetValue<string>('status', '');
+
+      DAOPedido.EditarStatusItem(id_pedido, id_item, status);
+
+      Res.Send('Item atualizado com sucesso');
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+
+  finally
+    DAOPedido.Free;
+  end;
+end;
+
+end.

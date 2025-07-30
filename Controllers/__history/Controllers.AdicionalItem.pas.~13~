@@ -1,0 +1,121 @@
+unit Controllers.AdicionalItem;
+
+interface
+
+uses Horse,
+     Horse.JWT,
+     System.JSON,
+     System.SysUtils,
+     DAO.Pedido,
+     Controllers.Auth;
+
+procedure RegistrarRotas;
+procedure ListarAdicionalItemPorPedido(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure InserirAdicionalItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure ExcluirAdicionalItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure EditarAdicionalItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+
+implementation
+
+uses
+  DAO.AdicionalItem;
+
+procedure RegistrarRotas;
+begin
+  THorse{.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))}
+        .get('/adicionais/:id_pedido/itens-adicionais', ListarAdicionalItemPorPedido);
+
+  THorse{.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))}
+        .post('/adicionais/:id_pedido/adicional-item', InserirAdicionalItem);
+
+  THorse{.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))}
+        .delete('/adicionais/id:pedido/adicional/:id_adicional', ExcluirAdicionalItem);
+
+  THorse{.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))}
+        .put('/adicionais/:id_pedido/adicional/:id_adicional', EditarAdicionalItem);
+end;
+
+procedure ListarAdicionalItemPorPedido(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+begin
+  try
+    try
+      Res.Status(200);
+    except
+
+    end;
+  finally
+
+  end;
+end;
+
+procedure InserirAdicionalItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOAdicionalItem : TDAOAdicionalItem;
+  LJSONBody         : TJSONObject;
+  LIdPedido         : integer;
+  LIdAdicional      : integer;
+  LQuantidade       : double;
+  LValor            : currency;
+begin
+  LDAOAdicionalItem := TDAOAdicionalItem.Create;
+  try
+    try
+      LJSONBody    := Req.Body<TJSONObject>;
+      LIdPedido    := LJSONBody.GetValue<integer>('idPedido');
+      LIdAdicional := LJSONBody.GetValue<integer>('idAdicional');
+      LQuantidade  := LJSONBody.GetValue<double>('quantidade');
+      LValor       := LJSONBody.GetValue<Currency>('valor');
+
+      Res.Send<TJSONObject>(LDAOAdicionalItem.InserirAdicional(LIdPedido, LIdAdicional, LQuantidade, LValor));
+      Res.Status(LDAOAdicionalItem.CodigoResposta);
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+  finally
+    FreeAndNil(LDAOAdicionalItem);
+  end;
+end;
+
+procedure ExcluirAdicionalItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+begin
+  try
+    try
+      Res.Status(200);
+    except
+
+    end;
+  finally
+
+  end;
+end;
+
+procedure EditarAdicionalItem(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOAdicionalItem : TDAOAdicionalItem;
+  LJSONBody         : TJSONObject;
+  LIdPedido         : integer;
+  LIdAdicional      : integer;
+  LQuantidade       : double;
+  LValor            : currency;
+begin
+  LDAOAdicionalItem := TDAOAdicionalItem.Create;
+  try
+    try
+      LIdPedido    := Req.Params['id_pedido'].ToInteger;
+      LIdAdicional := Req.Params['id_adicional'].ToInteger;
+
+      LJSONBody    := Req.Body<TJSONObject>;
+      LQuantidade  := LJSONBody.GetValue<double>('quantidade');
+      LValor       := LJSONBody.GetValue<Currency>('valor');
+
+      Res.Send<TJSONObject>(LDAOAdicionalItem.EditarAdicional(LIdPedido, LIdAdicional, LQuantidade, LValor));
+      Res.Status(LDAOAdicionalItem.CodigoResposta);
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+  finally
+    FreeAndNil(LDAOAdicionalItem);
+  end;
+end;
+
+end.

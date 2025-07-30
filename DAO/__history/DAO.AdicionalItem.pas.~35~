@@ -1,0 +1,147 @@
+unit DAO.AdicionalItem;
+
+interface
+
+uses Firedac.Comp.Client,
+     FireDAC.DApt,
+     DataSet.Serialize,
+     DAO.Connection,
+     System.SysUtils,
+     System.JSON;
+
+type
+  TDAOAdicionalItem = class(TDAOConnection)
+  private
+    FCodigoResposta: integer;
+  public
+    function ListarAdicionalPorPedido(AIdItemPedido: integer)                                              : TJSONArray;
+    function InserirAdicional(AIdItemPedido: integer; AItensAdicional: TJSONArray) : TJSONObject;
+    function EditarAdicional(AIdItemPedido, AIdAdicional: integer; AQuantidade: double; AValor: currency)   : TJSONObject;
+    function DeletarAdicional(AIdItemPedido: integer; AIdAdicional: integer)                               : TJSONObject;
+    function CodigoResposta                                                                            : integer;
+  end;
+
+implementation
+
+{ TDAOAdicionalItem }
+
+function TDAOAdicionalItem.CodigoResposta: integer;
+begin
+  Result := FCodigoResposta;
+end;
+
+function TDAOAdicionalItem.DeletarAdicional(AIdItemPedido, AIdAdicional: integer): TJSONObject;
+var
+  LQry: TFDQuery;
+begin
+  LQry := TFDQuery.Create(nil);
+  try
+    try
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('delete from adicionais_item ');
+      LQry.SQL.Add(' where id_item_pedido=:id_item_pedido and id_adicional=:id_adicional');
+      LQry.ParamByName('id_item_pedido').AsInteger := AIdItemPedido;
+      LQry.ParamByName('id_adicional').AsInteger   := AIdAdicional;
+      LQry.Active := True;
+      Result := nil;
+      FCodigoResposta := 204;
+    except
+      on e:exception do
+      begin
+        raise Exception.Create('Falha ao deletar o adicional, erro: ' + e.Message);
+      end;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+function TDAOAdicionalItem.EditarAdicional(AIdItemPedido, AIdAdicional: integer; AQuantidade: double; AValor: currency): TJSONObject;
+var
+  LQry: TFDQuery;
+  LIdAdicional: integer;
+begin
+  LQry := TFDQuery.Create(nil);
+  try
+    LQry.Connection := Self.Connection;
+
+    LQry.SQL.Add('update adicionais_item set quantidade=:quantidade, valor=:valor');
+    LQry.SQL.Add(' where id_item_pedido=:id_item_pedido and id_adicional=:id_adicional');
+    LQry.ParamByName('id_item_pedido').AsInteger    := AIdItemPedido;
+    LQry.ParamByName('id_adicional').AsInteger := AIdAdicional;
+    LQry.ParamByName('quantidade').AsFloat     := AQuantidade;
+    LQry.ParamByName('valor').AsCurrency       := AValor;
+    LQry.Active := True;
+    Result := nil;
+    FCodigoResposta := 204;
+  except
+    on e:exception do
+    begin
+      raise Exception.Create('Falha ao atualizar o Adicional, erro: ' + e.Message);
+    end;
+  end;
+end;
+
+function TDAOAdicionalItem.InserirAdicional(AIdItemPedido: integer; AItensAdicional: TJSONArray): TJSONObject;
+var
+  LQry: TFDQuery;
+  i: Integer;
+begin
+  LQry := TFDQuery.Create(nil);
+  try
+    try
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('insert into adicionais_item (id_item_pedido, id_adicional, quantidade, valor)');
+      LQry.SQL.Add(' values (:id_item_pedido, :id_adicional, :quantidade, :valor)');
+
+      for i := 0 to Pred(AItensAdicional.Size) do
+      begin
+        LQry.ParamByName('id_item_pedido').AsInteger := AItensAdicional[i].GetValue<integer>('idItemPedido');
+        LQry.ParamByName('id_adicional').AsInteger   := AItensAdicional[i].GetValue<integer>('idAdicional');
+        LQry.ParamByName('quantidade').AsFloat       := AItensAdicional[i].GetValue<Double>('Quantidade');
+        LQry.ParamByName('valor').AsCurrency         := AItensAdicional[i].GetValue<Double>('Valor');
+        LQry.ExecSQL;
+      end;
+
+      Result := LQry.ToJSONObject;
+      FCodigoResposta := 201;
+    except
+      on e:exception do
+      begin
+        raise Exception.Create('Falha ao inserir o adicional, erro: ' + e.Message);
+      end;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+function TDAOAdicionalItem.ListarAdicionalPorPedido(AIdItemPedido: integer): TJSONArray;
+var
+  LQry: TFDQuery;
+begin
+  LQry := TFDQuery.Create(nil);
+  try
+    try
+      LQry.Connection := Self.Connection;
+
+      LQry.SQL.Add('select * from adicionais_item ');
+      LQry.SQL.Add(' where id_item_pedido=:id_item_pedido');
+      LQry.ParamByName('id_item_pedido').AsInteger := AIdItemPedido;
+      LQry.Active := True;
+      Result := LQry.ToJSONArray;
+      FCodigoResposta := 200;
+    except
+      on e:exception do
+      begin
+        raise Exception.Create('Falha ao listar o itens adicionais, erro: ' + e.Message);
+      end;
+    end;
+  finally
+    FreeAndNil(LQry);
+  end;
+end;
+
+end.

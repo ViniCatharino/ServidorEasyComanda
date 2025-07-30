@@ -1,0 +1,75 @@
+unit Controllers.Adicional;
+
+interface
+
+uses Horse,
+     Horse.JWT,
+     System.JSON,
+     System.SysUtils,
+     DAO.Pedido,
+     Controllers.Auth;
+
+procedure RegistrarRotas;
+procedure ListarAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure InserirAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure ExcluirAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure EditarAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+
+implementation
+
+uses
+  DAO.Adicional;
+
+procedure RegistrarRotas;
+begin
+//  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+//        .get('/adicionais', ListarAdicional);
+
+  THorse
+    .get('/adicionais', ListarAdicional);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .post('/adicionais', InserirAdicional);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .delete('/adicionais/:id_adicional', ExcluirAdicional);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .put('/adicionais/:id_pedido/itens/:id_item/status', EditarAdicional);
+end;
+
+procedure ListarAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOAdicionais: TDAOAdicional;
+begin
+  LDAOAdicionais := TDAOAdicional.Create;
+  try
+    Res.Send<TJSONArray>(LDAOAdicionais.ListarAdicionais);
+  finally
+    FreeAndNil(LDAOAdicionais);
+  end;
+end;
+
+procedure InserirAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  LDAOAdicionais: TDAOAdicional;
+begin
+  LDAOAdicionais := TDAOAdicional.Create;
+  try
+    Res.Send<TJSONArray>(LDAOAdicionais.ListarAdicionais);
+  finally
+    FreeAndNil(LDAOAdicionais);
+  end;
+end;
+
+procedure ExcluirAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+begin
+
+end;
+
+procedure EditarAdicional(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+begin
+
+end;
+
+end.

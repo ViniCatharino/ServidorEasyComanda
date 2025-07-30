@@ -1,0 +1,62 @@
+unit Controllers.Usuario;
+
+interface
+
+uses Horse,
+     System.JSON,
+     System.SysUtils,
+     DAO.Usuario,
+     uMD5,
+     Controllers.Auth;
+
+procedure RegistrarRotas;
+procedure Login(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+
+implementation
+
+procedure RegistrarRotas;
+begin
+  THorse.post('/usuarios/login', Login);
+end;
+
+procedure Login(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  DAOUsuario: TDAOUsuario;
+  body, json: TJSONObject;
+  login, senha: string;
+begin
+  DAOUsuario := nil;
+  try
+    try
+      DAOUsuario := TDAOUsuario.Create;
+
+      body := Req.Body<TJSONObject>;
+      login := body.GetValue<string>('login', '');
+      senha := body.GetValue<string>('senha', '');
+
+      json := DAOUsuario.Login(login, SaltPassword(senha));
+
+
+      if json.Count = 0 then
+      begin
+        Res.Send('Usuário ou senha inválida').Status(401);
+        json.Free;
+      end
+      else
+      begin
+        // Gerar Token JWT...
+        json.AddPair('token', Criar_Token(json.GetValue<integer>('id_usuario')));
+
+        Res.Send<TJSONObject>(json);
+      end;
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+
+  finally
+    DAOUsuario.Free;
+  end;
+end;
+
+end.

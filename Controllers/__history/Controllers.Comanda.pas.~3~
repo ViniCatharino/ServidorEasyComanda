@@ -1,0 +1,109 @@
+unit Controllers.Comanda;
+
+interface
+
+uses Horse,
+     Horse.JWT,
+     System.JSON,
+     System.SysUtils,
+     DAO.Comanda,
+     Controllers.Auth;
+
+procedure RegistrarRotas;
+procedure ListarConsumo(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure Encerrar(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+procedure AbrirComanda(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+
+implementation
+
+procedure RegistrarRotas;
+begin
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .get('/comandas/:id_comanda', ListarConsumo);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .post('/comandas/:id_comanda/encerramento', Encerrar);
+
+  THorse.AddCallback(HorseJWT(Controllers.Auth.SECRET, THorseJWTConfig.New.SessionClass(TMyClaims)))
+        .post('/comandas', AbrirComanda);
+end;
+
+procedure ListarConsumo(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  DAOComanda: TDAOComanda;
+  id_comanda: integer;
+begin
+  DAOComanda := nil;
+
+  try
+    try
+      DAOComanda := TDAOComanda.Create;
+
+      id_comanda := Req.Params['id_comanda'].ToInteger;
+
+      Res.Send<TJSONArray>(DAOComanda.ListarConsumo(id_comanda));
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+
+  finally
+    DAOComanda.Free;
+  end;
+end;
+
+procedure Encerrar(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  DAOComanda: TDAOComanda;
+  id_comanda: integer;
+begin
+  DAOComanda := nil;
+
+  try
+    try
+      DAOComanda := TDAOComanda.Create;
+
+      id_comanda := Req.Params['id_comanda'].ToInteger;
+
+      Res.Send<TJSONObject>(DAOComanda.Encerrar(id_comanda));
+      Res.Status(DAOComanda.CodigoResposta);
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+
+  finally
+    DAOComanda.Free;
+  end;
+end;
+
+procedure AbrirComanda(Req: THorseRequest; Res: THorseResponse; Next: TProc);
+var
+  DAOComanda: TDAOComanda;
+  id_mesa, id_usuario: integer;
+  cliente_comanda: string;
+  body: TJSONObject;
+begin
+  DAOComanda := nil;
+
+  try
+    try
+      DAOComanda := TDAOComanda.Create;
+
+      body            := Req.Body<TJSONObject>;
+      id_usuario      := Get_Usuario_Request(Req);
+      id_mesa         := body.GetValue<integer>('id_mesa', 0);
+      cliente_comanda := UpperCase(body.GetValue<string>('cliente_comanda', ''));
+
+      Res.Send<TJSONObject>(DAOComanda.AbrirComanda(id_usuario, id_mesa, cliente_comanda)).Status(201);
+
+    except on ex:exception do
+      Res.Send(ex.Message).Status(500);
+    end;
+
+  finally
+    DAOComanda.Free;
+  end;
+end;
+
+end.
